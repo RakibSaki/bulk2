@@ -1,8 +1,8 @@
 let sx = 400, sy = 300;
-let x = -1.521e11, y = 0, ix = -1.52e11;
-let vy = -2.929e4, vx = 0, ivy = -2.929e4;
-const G = 6.6743e-11;
-let sm = 1.989e30, m = 5.972e24;
+let x = -200, y = 0, ix = -200;
+let vy = -1, vx = 0, ivy = -1;
+const G = 1;
+let sm = 1000, m = 10;
 let maxv, pocot;
 let play = false, resetting = false;
 
@@ -14,9 +14,6 @@ let time = 0, pret;
 let needpre=false;
 
 let zoom = 1;
-let sscale = 7.5e8;   // metres = 1pixel
-let tscale = 1e5;   // seconds = 1 frame
-let pixelmaxv;
 
 let unable = false, calculating=false;
 
@@ -280,7 +277,7 @@ function pre() {
 }
 
 function pre1(scrutiny) {
-  pret = timescale/pixelmaxv;
+  pret = 1/maxv;
   arn = 0;
   let acct = pret/scrutiny;
   for (let iterator = 0; iterator < T / acct; iterator++) {
@@ -343,11 +340,9 @@ function cale() {
         maxv = Math.abs(vy);
       } else {
         hyperbolic = true;
-        maxv=v;
       }
       T = Math.sqrt((39.478417604 * a*a*a) / (G * sm));
       pocot = 1 / maxv;
-      pixelmaxv = maxv/sscale;
   } else {
     console.log("can't predict orbit ¯\_(<_<)_/¯");
   }
