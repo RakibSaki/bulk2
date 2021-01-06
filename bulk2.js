@@ -1,8 +1,8 @@
 let sx = 400, sy = 300;
-let x = -200, y = 0, ix = -200;
-let vy = -1, vx = 0, ivy = -1;
-const G = 1;
-let sm = 1000, m = 10;
+let x = -1.521e11, y = 0, ix = -1.521e11;
+let vy = -2.929e4, vx = 0, ivy = -2.929e4;
+const G = 6.6743e-11;
+let sm = 1.989e30, m = 5.972e24;
 let maxv, pocot;
 let play = false, resetting = false;
 
@@ -14,6 +14,9 @@ let time = 0, pret;
 let needpre=false;
 
 let zoom = 1;
+let sscale = 7.5e8;
+let tscale = 1e5;
+let vscale = sscale/tscale;
 
 let unable = false, calculating=false;
 
@@ -28,6 +31,11 @@ function setup() {
 let testx = 0;
 function draw() {
   background(0);
+  if (unable) {
+    fill(255, 0, 0);
+    noStroke();
+    text("|sorry, can not calculate accurately|", 50, 100);
+  }
   translate(sx, sy);
   scale(zoom);
   orbit();
@@ -39,21 +47,21 @@ function draw() {
     move();
   }
   buttons();
-  varplay();
+  varplay();/*
   if (calculating) {
     textAlign(LEFT);
     fill(255);
     fill(255, 0, 0);
     text("calculating", 50, 100);
-  }
+  }*/
   stroke(200);
   line(800, 0, 800, height);
 }
 
 let margin = 25;
 let ls = 22;
-let variablestoshow = ["distance", "speed", "gravitational attraction", "acceleration", "gravitational potential energy", "kinetic energy", "total energy", "momentum",/* "angular speed", "angular momentum", "\"centrifugal\" force",*/ "mass of star", "mass of planet"];
-let variablestoshow2 = ["eccentricity", "semi-major axis", "semi-minor axis", "focal distance", "period of orbit"];
+let variablestoshow = ["distance / m", "speed / m/s", "gravitational attraction / N", "acceleration / m/s/s", "gravitational potential energy / J", "kinetic energy / J", "total energy / J", "momentum / kg.m/s",/* "angular speed", "angular momentum", "\"centrifugal\" force",*/ "mass of star / kg", "mass of planet / kg"];
+let variablestoshow2 = ["eccentricity", "semi-major axis / m", "semi-minor axis / m", "focal distance / m", "period of orbit / s"];
 
 function varplay() {    // variables display=
   fill(225);
@@ -103,7 +111,9 @@ function mouseClicked() {
     play = !play;
     if (play && needpre) {
       calculating = true;
-      pre();
+      if (!hyperbolic) {
+        pre();
+      }
       needpre=false;
     }
   } else if (mouseY + bs[1][1] > height && mouseX < bs[1][0]) {
@@ -159,24 +169,24 @@ function mouseDragged() {
     time=0;
     let del = mouseX - smouseX;
     if (selected == 0) {
-      x = svalue + del;
-      if (x > -50) {
-        x = -50;
+      x = svalue + (del*sscale);
+      if (x > -50*sscale) {
+        x = -50*sscale;
       }
       ix = x+0;
       
     } else if (selected == 1) {
-      vy = svalue - (del * 0.001);
+      vy = svalue - (del*vscale * 0.001);
       ivy = vy + 0;
     } else if (selected == 2) {
-      sm = sm + del;
+      sm = sm + (del*1e27);
       if (sm < 100) {
         sm = 100;
       }
     } else if (selected == 3) {
-      if (m + del < sm * 0.01 && m + del > 0) {
-        m = m + del;
-      }
+      //if (m + del < sm * 0.01 && m + del > 0) {
+        m = m + (del*1e23*3);
+      //}
     }
     cale();
   }
@@ -253,13 +263,14 @@ function buttons() {
 }
 
 function pre() {
+  unable=false;
   let starttime = millis()+0;
   scrutiny = 10000;
   textAlign(LEFT);
   fill(255, 0, 0);
   text("calculating", 50, 100);
   pre1(scrutiny);
-  if (Py(arx[0]-arx[arn-1], ary[0]-ary[arn-1]) > 0.5) {
+  if (Py(arx[0]-arx[arn-1], ary[0]-ary[arn-1]) > sscale) {
     unable = true;
     clickedsoreset();
   }
@@ -277,10 +288,10 @@ function pre() {
 }
 
 function pre1(scrutiny) {
-  pret = 1/maxv;
+  pret = 1*vscale/maxv;     // frames to pass 1 pixel at maximumspeed(periapse)
   arn = 0;
-  let acct = pret/scrutiny;
-  for (let iterator = 0; iterator < T / acct; iterator++) {
+  let acct = pret/scrutiny; // time/frame for each smallercalc within 1 frame
+  for (let iterator = 0; iterator < (T/tscale) / acct; iterator++) {
     if(iterator%scrutiny == 0) {
       let target = iterator/scrutiny;
       arx[target] = x;
@@ -289,7 +300,7 @@ function pre1(scrutiny) {
       arvy[target] = vy;
       arn++;
     }
-    moves(acct);
+    moves(acct*tscale);
   }
 }
 
@@ -347,24 +358,30 @@ function cale() {
     console.log("can't predict orbit ¯\_(<_<)_/¯");
   }
 }
-/*
-function move() {
-  times = Math.ceil(maxv * 1000);
+
+function moveh() {
+  times = Math.ceil(maxv * 1000 / vscale);
   for (let iterator = 0; iterator < times; iterator++) {
-    moves(1 / times);
+    moves(tscale / times);
   }
 }
-*/
+
 function move() {
-  let target = Math.floor((time%T)/pret);
-  x = arx[target];
-  y = ary[target];
-  vx = arvx[target];
-  vy = arvy[target];
-  time++;
+  if (!hyperbolic) {
+    let target = Math.floor(((time%T)/tscale)/pret);
+    x = arx[target];
+    y = ary[target];
+    vx = arvx[target];
+    vy = arvy[target];
+    time+=tscale;
+  } else {
+    moveh();
+  }
+  
 }
 
 function moves(smallt){
+  //smallt *= tscale;
   r = Py(x,y);
   f = -G * sm * m / (r*r);
   acc = f / m;
@@ -388,17 +405,17 @@ function orbit () {
   if (!hyperbolic) {
     noFill();
     stroke(150);
-    ellipse(cx, cy, am, bm);
+    ellipse(cx/sscale, cy/sscale, am/sscale, bm/sscale);
     stroke(50);
-    line(focix, fociy, x, y);
-    line(0, 0, x, y);
+    line(focix/sscale, fociy/sscale, x/sscale, y/sscale);
+    line(0, 0, x/sscale, y/sscale);
   }
 }
 
 function planet(){
   fill('#1EF54E');
   noStroke();
-  ellipse(x, y, 12, 12);
+  ellipse(x/sscale, y/sscale, 12, 12);
 }
 
 function star(){
